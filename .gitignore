@@ -1,0 +1,47 @@
+# Build artifacts
+*.o
+*.obj
+*.exe
+*.out
+*.so
+*.dll
+*.a
+*.lib
+
+# Compiled binaries
+bin/
+build/
+cmake-build-*/
+
+# Output images
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tiff
+*.gif
+!sample.jpg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+
+# CUDA
+*.ptx
+*.cubin
+*.fatbin
+
+# Logs
+*.log
+
