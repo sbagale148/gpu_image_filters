@@ -45,17 +45,48 @@ int main() {
 
     unsigned char *d_src;
     float *d_dst;
-    cudaMalloc(&d_src, imgSize);
-    cudaMalloc(&d_dst, outSize);
-    cudaMemcpy(d_src, img.data, imgSize, cudaMemcpyHostToDevice);
+    cudaError_t err;
+    
+    err = cudaMalloc(&d_src, imgSize);
+    if (err != cudaSuccess) {
+        std::cerr << "CUDA malloc error for source: " << cudaGetErrorString(err) << "\n";
+        return 1;
+    }
+    
+    err = cudaMalloc(&d_dst, outSize);
+    if (err != cudaSuccess) {
+        std::cerr << "CUDA malloc error for destination: " << cudaGetErrorString(err) << "\n";
+        cudaFree(d_src);
+        return 1;
+    }
+    
+    err = cudaMemcpy(d_src, img.data, imgSize, cudaMemcpyHostToDevice);
+    if (err != cudaSuccess) {
+        std::cerr << "CUDA memcpy error (H2D): " << cudaGetErrorString(err) << "\n";
+        cudaFree(d_src);
+        cudaFree(d_dst);
+        return 1;
+    }
 
     dim3 block(16, 16);
     dim3 grid((width + block.x - 1)/block.x, (height + block.y - 1)/block.y);
     sobelKernel<<<grid, block>>>(d_src, d_dst, width, height);
-    cudaDeviceSynchronize();
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        std::cerr << "CUDA kernel error: " << cudaGetErrorString(err) << "\n";
+        cudaFree(d_src);
+        cudaFree(d_dst);
+        return 1;
+    }
 
     cv::Mat grad_float(height, width, CV_32F);
-    cudaMemcpy(grad_float.data, d_dst, outSize, cudaMemcpyDeviceToHost);
+    err = cudaMemcpy(grad_float.data, d_dst, outSize, cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess) {
+        std::cerr << "CUDA memcpy error (D2H): " << cudaGetErrorString(err) << "\n";
+        cudaFree(d_src);
+        cudaFree(d_dst);
+        return 1;
+    }
 
     cv::Mat grad;
     cv::normalize(grad_float, grad, 0, 255, cv::NORM_MINMAX, CV_8U);

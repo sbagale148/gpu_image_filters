@@ -36,7 +36,7 @@ int main() {
     }
   }
 
-  if (!imwrite("M3_gray_saved.jpg", grayMat)) {
+  if (!cv::imwrite("M3_gray_saved.jpg", grayMat)) {
     std::cerr << "Error: could not save M3_gray_saved.jpg\n";
     return 1;
   }

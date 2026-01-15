@@ -43,19 +43,49 @@ int main() {
 
   unsigned char *d_src;
   float *d_dst;
-  cudaMalloc(&d_src, imgSizeUChar);
-  cudaMalloc(&d_dst, imgSizeFloat);
+  cudaError_t err;
+  
+  err = cudaMalloc(&d_src, imgSizeUChar);
+  if (err != cudaSuccess) {
+    std::cerr << "CUDA malloc error for source: " << cudaGetErrorString(err) << "\n";
+    return 1;
+  }
+  
+  err = cudaMalloc(&d_dst, imgSizeFloat);
+  if (err != cudaSuccess) {
+    std::cerr << "CUDA malloc error for destination: " << cudaGetErrorString(err) << "\n";
+    cudaFree(d_src);
+    return 1;
+  }
 
-  cudaMemcpy(d_src, img.data, imgSizeUChar, cudaMemcpyHostToDevice);
+  err = cudaMemcpy(d_src, img.data, imgSizeUChar, cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    std::cerr << "CUDA memcpy error (H2D): " << cudaGetErrorString(err) << "\n";
+    cudaFree(d_src);
+    cudaFree(d_dst);
+    return 1;
+  }
 
   dim3 block(16, 16);
   dim3 grid((width + block.x - 1)/block.x, (height + block.y - 1)/block.y);
 
   blurKernel<<<grid, block>>>(d_src, d_dst, width, height);
-  cudaDeviceSynchronize();
+  err = cudaDeviceSynchronize();
+  if (err != cudaSuccess) {
+    std::cerr << "CUDA kernel error: " << cudaGetErrorString(err) << "\n";
+    cudaFree(d_src);
+    cudaFree(d_dst);
+    return 1;
+  }
 
   cv::Mat blurred_float(height, width, CV_32F);
-  cudaMemcpy(blurred_float.data, d_dst, imgSizeFloat, cudaMemcpyDeviceToHost);
+  err = cudaMemcpy(blurred_float.data, d_dst, imgSizeFloat, cudaMemcpyDeviceToHost);
+  if (err != cudaSuccess) {
+    std::cerr << "CUDA memcpy error (D2H): " << cudaGetErrorString(err) << "\n";
+    cudaFree(d_src);
+    cudaFree(d_dst);
+    return 1;
+  }
 
   cv::Mat blurred;
   cv::normalize(blurred_float, blurred, 0, 255, cv::NORM_MINMAX, CV_8U);

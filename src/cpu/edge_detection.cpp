@@ -11,14 +11,19 @@ cv::Mat applyKernel(const cv::Mat &src, const cv::Mat &kernel) {
 
   cv::Mat dst = cv::Mat::zeros(src.size(), CV_32F);
 
-  for (int y = kCenterY; y < src.rows - kCenterY; y++) {
-    for (int x = kCenterX; x < src.cols - kCenterX; x++) {
+  for (int y = 0; y < src.rows; y++) {
+    for (int x = 0; x < src.cols; x++) {
       float sum = 0.0f;
 
       for (int ky = 0; ky < kRows; ky++) {
         for (int kx = 0; kx < kCols; kx++) {
           int iy = y + (ky - kCenterY);
           int ix = x + (kx - kCenterX);
+
+          // Handle edge cases by clamping coordinates
+          iy = std::max(0, std::min(iy, src.rows - 1));
+          ix = std::max(0, std::min(ix, src.cols - 1));
+
           sum += src.at<uchar>(iy, ix) * kernel.at<float>(ky, kx);
         }
       }
@@ -33,7 +38,7 @@ cv::Mat applyKernel(const cv::Mat &src, const cv::Mat &kernel) {
 int main() {
   cv::Mat img = cv::imread("sample.jpg");
   if (img.empty()) {
-    std::cerr << "Could not open for find the image\n";
+    std::cerr << "Could not open or find the image\n";
     return 1;
   }
 
